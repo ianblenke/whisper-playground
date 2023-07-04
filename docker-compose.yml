@@ -1,0 +1,51 @@
+version: "2.1"
+
+networks:
+  default:
+    driver: bridge
+
+services:
+  whisper_playground_backend:
+    image: whisper_playground_backend
+    build: .
+    privileged: True
+    runtime: nvidia
+    container_name: whisper_playground_backend
+    hostname: whisper_playground_backend
+    environment:
+      HOSTNAME: whisper_playground_backend
+      NVIDIA_VISIBLE_DEVICES: ALL
+    ipc: host
+    devices:
+    - /dev/dri:/dev/dri
+    shm_size: 1G
+    command: "bash -c 'cd backend && exec flask run --host 0.0.0.0 --port 28000'"
+    ports:
+    - "28000:28000"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    restart: unless-stopped
+    networks:
+    - default
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu,video]
+              count: all
+
+  whisper_playground_frontend:
+    image: whisper_playground_frontend
+    build: .
+    container_name: whisper_playground_frontend
+    hostname: whisper_playground_frontend
+    environment:
+      HOSTNAME: whisper_playground_frontend
+    restart: unless-stopped
+    ports:
+    - "58080:3000"
+    networks:
+    - default
+    command: "bash -c 'cd interface && exec serve -s build'"
